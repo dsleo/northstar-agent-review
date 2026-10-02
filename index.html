@@ -1,0 +1,806 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NorthStar Mobile — Agent Strategy Review</title>
+<meta name="description" content="Sierra × NorthStar Mobile: Agent Strategy Review — an interactive walkthrough of where the agent stands today and where to invest next.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --dark:#05351D; --dark2:#042A17; --cream:#F7F4EC; --text-dark:#1C2620; --text-muted:#5B6660;
+    --muted-d:#9FBBA8; --muted-d2:#CFE0D5; --gold:#E8C547; --border:#E3DFCF; --footer-muted:#8A8F86;
+    --amber:#A6752B; --taupe:#7A5C33; --green2:#3F6B52;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:'DM Sans', Arial, sans-serif; background:var(--cream); color:var(--text-dark);
+    scroll-snap-type:y proximity; overflow-x:hidden;
+  }
+  ::selection{background:var(--gold); color:var(--dark);}
+
+  /* progress bar */
+  #progress{position:fixed; top:0; left:0; height:3px; width:0%; background:var(--gold); z-index:200; transition:width .1s linear;}
+
+  /* top label */
+  #topLabel{
+    position:fixed; top:20px; left:28px; z-index:150; display:flex; align-items:center; gap:10px;
+    background:rgba(5,53,29,0.82); backdrop-filter:blur(6px); border-radius:999px; padding:8px 16px 8px 10px;
+    opacity:0; transform:translateY(-8px); transition:opacity .35s ease, transform .35s ease; pointer-events:none;
+  }
+  #topLabel.show{opacity:1; transform:translateY(0);}
+  #topLabel svg{flex:none;}
+  #topLabel span{color:var(--cream); font-size:13px; font-weight:600; letter-spacing:.3px; white-space:nowrap;}
+  #topLabel span.idx{color:var(--gold);}
+
+  /* side nav */
+  #nav{
+    position:fixed; right:26px; top:50%; transform:translateY(-50%); z-index:150;
+    display:flex; flex-direction:column; gap:12px; align-items:flex-end;
+    background:rgba(5,53,29,0.55); backdrop-filter:blur(6px); padding:14px 10px; border-radius:999px;
+  }
+  #nav button{
+    position:relative; width:9px; height:9px; border-radius:50%; border:2px solid rgba(247,244,236,0.45);
+    background:transparent; cursor:pointer; padding:0; transition:all .25s ease;
+  }
+  #nav button:hover{border-color:var(--gold);}
+  #nav button.active{background:var(--gold); border-color:var(--gold); transform:scale(1.3);}
+  #nav button .tip{
+    position:absolute; right:22px; top:50%; transform:translateY(-50%); white-space:nowrap;
+    background:var(--dark); color:var(--cream); font-size:12px; font-weight:600; padding:5px 10px;
+    border-radius:6px; opacity:0; pointer-events:none; transition:opacity .2s ease;
+  }
+  #nav button:hover .tip{opacity:1;}
+
+  /* mobile counter */
+  #mobileCounter{
+    display:none; position:fixed; bottom:18px; left:50%; transform:translateX(-50%); z-index:150;
+    background:rgba(5,53,29,0.82); color:var(--cream); font-size:12px; font-weight:700; letter-spacing:.5px;
+    padding:8px 16px; border-radius:999px;
+  }
+  #mobileCounter .gold{color:var(--gold);}
+
+  section.slide{
+    min-height:100vh; width:100%; position:relative; scroll-snap-align:start;
+    display:flex; align-items:center; justify-content:center;
+    padding:140px 8vw 100px;
+  }
+  .slide--dark{background:linear-gradient(135deg,var(--dark) 0%, var(--dark2) 100%); color:var(--cream);}
+  .slide--light{background:var(--cream); color:var(--text-dark);}
+
+  .inner{max-width:1200px; width:100%; margin:0 auto; display:flex; flex-direction:column; gap:28px;}
+
+  .eyebrow{font-size:14px; font-weight:700; letter-spacing:2.5px; text-transform:uppercase;}
+  .slide--light .eyebrow{color:var(--dark);}
+  .slide--dark .eyebrow{color:var(--muted-d);}
+
+  h1{font-size:clamp(38px,6vw,80px); font-weight:700; line-height:1.08;}
+  h2{font-size:clamp(30px,4.2vw,50px); font-weight:700; line-height:1.15;}
+  h3{font-size:22px; font-weight:700;}
+  .slide--light h1, .slide--light h2{color:var(--dark);}
+  .lede{font-size:clamp(16px,1.6vw,21px); line-height:1.55; max-width:820px;}
+  .slide--light .lede{color:var(--text-muted);}
+  .slide--dark .lede{color:var(--muted-d2);}
+
+  .footer-meta{
+    display:flex; justify-content:space-between; align-items:center; gap:16px; margin-top:12px;
+    padding-top:22px; border-top:1px solid rgba(0,0,0,0.08); font-size:13px;
+  }
+  .slide--light .footer-meta{color:var(--footer-muted); border-top-color:var(--border);}
+  .slide--dark .footer-meta{color:var(--muted-d); border-top-color:rgba(255,255,255,0.14);}
+  .footer-meta .brand{display:flex; align-items:center; gap:8px;}
+  .footer-meta .pagenum{font-weight:700;}
+
+  .reveal{opacity:0; transform:translateY(22px); transition:opacity .7s ease, transform .7s ease;}
+  .reveal.visible{opacity:1; transform:translateY(0);}
+  .r1{transition-delay:.05s;} .r2{transition-delay:.15s;} .r3{transition-delay:.25s;}
+  .r4{transition-delay:.35s;} .r5{transition-delay:.45s;} .r6{transition-delay:.55s;}
+
+  /* ---- scroll-pinned progressive reveal sections ---- */
+  section.pin-scroll{display:block; padding:0;}
+  section.pin-scroll .sticky-stage{
+    position:sticky; top:0; min-height:100vh; width:100%;
+    display:flex; align-items:center; justify-content:center;
+    padding:140px 8vw 100px;
+  }
+  .reveal-step{opacity:0; transform:translateY(28px); transition:opacity .55s ease, transform .55s ease;}
+  .reveal-step.step-visible{opacity:1; transform:translateY(0);}
+
+  /* ---- first-agent side image ---- */
+  .fa-layout{display:grid; grid-template-columns:1fr 1fr; gap:40px; align-items:center;}
+  @media(max-width:820px){.fa-layout{grid-template-columns:1fr;}}
+  .fa-copy h2{font-size:clamp(22px,2.15vw,32px); white-space:nowrap;}
+  @media(max-width:1000px){.fa-copy h2{white-space:normal;}}
+  .fa-media{display:flex; align-items:center; justify-content:center;}
+  .fa-media img{width:100%; max-width:480px; border-radius:22px; box-shadow:0 24px 60px rgba(5,53,29,0.18); border:1px solid var(--border);}
+
+  /* ---- cover / title slides (cover, dividers, closing) ---- */
+  .title-slide .inner{gap:56px; height:100%; justify-content:space-between; min-height:70vh;}
+  .title-slide .brandrow{display:flex; align-items:center; gap:14px;}
+  .title-slide .brandrow p{font-size:16px; font-weight:700; letter-spacing:3px; text-transform:uppercase;}
+  #cover .brandrow p{font-size:22px;}
+  .title-slide .titleblock{display:flex; flex-direction:column; gap:26px; max-width:920px;}
+  .title-slide .titleblock .sub{font-size:clamp(16px,2vw,22px); color:var(--muted-d2); max-width:700px; line-height:1.45;}
+  .title-slide .footer-meta{border-top:none; padding-top:0; margin-top:0;}
+  #cover .scrollcue{
+    position:absolute; bottom:34px; left:50%; transform:translateX(-50%); display:flex; flex-direction:column;
+    align-items:center; gap:8px; color:var(--muted-d); font-size:12px; letter-spacing:1.5px; text-transform:uppercase;
+    animation:bob 2.2s ease-in-out infinite;
+  }
+  @keyframes bob{0%,100%{transform:translate(-50%,0);} 50%{transform:translate(-50%,8px);}}
+
+  /* ---- lists / cards ---- */
+  ul.feature-list{list-style:none; display:flex; flex-direction:column; gap:16px; max-width:760px;}
+  ul.feature-list li{
+    display:flex; gap:14px; align-items:flex-start; font-size:clamp(17px,1.8vw,22px); line-height:1.5; color:var(--text-dark);
+  }
+  ul.feature-list li::before{
+    content:""; flex:none; width:10px; height:10px; margin-top:8px; border-radius:3px; background:var(--dark);
+  }
+
+  .callout{border-radius:18px; padding:30px 34px; display:flex; flex-direction:column; gap:10px;}
+  .callout--light{background:#fff; border:1px solid var(--border);}
+  .callout--dark{background:var(--dark); color:var(--cream);}
+  .callout--gold{background:rgba(232,197,71,.12); border:1px solid rgba(232,197,71,.4);}
+  .callout .label{font-size:13px; font-weight:700; letter-spacing:1.8px; text-transform:uppercase;}
+  .callout--light .label{color:var(--dark);}
+  .callout--dark .label{color:var(--muted-d);}
+  .callout .body-text{font-size:clamp(17px,1.8vw,23px); line-height:1.45;}
+  .callout--compact{padding:20px 24px; gap:6px; max-width:520px;}
+  .callout--compact .body-text{font-size:16px; line-height:1.5;}
+
+  /* stat grid */
+  .stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+  .stat-card{background:var(--dark); color:var(--cream); border-radius:16px; padding:24px 26px; display:flex; flex-direction:column; gap:6px;}
+  .stat-card .k{font-size:13px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted-d);}
+  .stat-card .v{font-size:clamp(20px,2.6vw,28px); font-weight:700;}
+  @media(max-width:640px){.stat-grid{grid-template-columns:1fr;}}
+
+  .formula-box{background:var(--dark); border-radius:18px; padding:30px 34px; display:flex; flex-direction:column; gap:12px; color:var(--cream);}
+  .formula-box .formula{font-size:clamp(17px,2vw,24px); font-weight:600; line-height:1.5;}
+  .formula-box .formula .hl{color:var(--gold);}
+  .formula-box .assump{font-size:14px; line-height:1.5; color:var(--muted-d2);}
+
+  /* bar chart */
+  .legend{display:flex; gap:26px; flex-wrap:wrap;}
+  .legend .item{display:flex; align-items:center; gap:9px; font-size:14px;}
+  .legend .swatch{width:14px; height:14px; border-radius:3px;}
+  .bars{display:flex; flex-direction:column; gap:16px;}
+  .bar-row{display:flex; align-items:center; gap:18px;}
+  .bar-row .label{width:190px; flex:none; font-size:16px; font-weight:600;}
+  .bar-row .track-group{flex:1; display:flex; flex-direction:column; gap:5px;}
+  .bar-line{display:flex; align-items:center; gap:10px;}
+  .bar-line .track{flex:1; background:rgba(0,0,0,0.05); border-radius:5px; height:14px; overflow:hidden;}
+  .bar-line .fill{height:100%; border-radius:5px; transform-origin:left; transform:scaleX(0); transition:transform 1.1s cubic-bezier(.2,.7,.2,1);}
+  .bar-line .val{width:44px; flex:none; font-size:13px; color:var(--text-muted);}
+  .bars-wrap.visible .fill{transform:scaleX(1);}
+
+  /* pie + callouts */
+  .pie-wrap{display:flex; gap:52px; align-items:center; flex-wrap:wrap;}
+  .pie-wrap svg{width:320px; height:320px; flex:none;}
+  .pie-cards{flex:1; min-width:280px; display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  @media(max-width:760px){.pie-cards{grid-template-columns:1fr;}}
+  .pie-card{background:#fff; border:1px solid var(--border); border-radius:14px; padding:18px 20px; border-left-width:6px; border-left-style:solid; display:flex; flex-direction:column; gap:6px;}
+  .pie-card .top{display:flex; align-items:center; gap:12px;}
+  .pie-card .top p{font-size:16px; font-weight:700; color:var(--text-dark);}
+  .pie-card .top .pct{font-size:15px; font-weight:700;}
+  .pie-card .q{font-size:14px; color:var(--text-muted); line-height:1.4;}
+
+  /* table */
+  table.outcomes-table{width:100%; border-collapse:collapse; font-size:16px;}
+  table.outcomes-table th{background:var(--dark); color:var(--cream); text-align:left; padding:12px 16px; font-size:13px; letter-spacing:.5px; text-transform:uppercase;}
+  table.outcomes-table td{padding:14px 16px; border-bottom:1px solid var(--border); vertical-align:top; font-size:15px; line-height:1.4;}
+  table.outcomes-table tr td:first-child{font-weight:700; white-space:nowrap;}
+  @media(max-width:760px){
+    table.outcomes-table, table.outcomes-table thead, table.outcomes-table tbody, table.outcomes-table th, table.outcomes-table td, table.outcomes-table tr{display:block;}
+    table.outcomes-table thead{display:none;}
+    table.outcomes-table tr{border:1px solid var(--border); border-radius:12px; margin-bottom:12px; padding:12px 14px; background:#fff;}
+    table.outcomes-table td{border:none; padding:5px 0;}
+  }
+
+  /* two-card / tension */
+  .twocol{display:grid; grid-template-columns:1fr 1fr; gap:24px;}
+  @media(max-width:760px){.twocol{grid-template-columns:1fr;}}
+  .tension-card{background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); border-radius:18px; padding:30px; display:flex; flex-direction:column; gap:12px;}
+  .tension-card .label{font-size:14px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted-d);}
+  .tension-card.gold .label{color:var(--gold);}
+  .tension-card p.body-text{font-size:19px; line-height:1.5; color:var(--cream);}
+
+  /* investment cards */
+  .invest-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:22px;}
+  @media(max-width:900px){.invest-grid{grid-template-columns:1fr;}}
+  .invest-card{background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); border-radius:20px; padding:28px 26px; display:flex; flex-direction:column; gap:12px;}
+  .invest-card .head{display:flex; align-items:center; gap:12px;}
+  .invest-card .head p{font-size:17px; font-weight:700; color:var(--gold);}
+  .invest-card .bignum{font-size:44px; font-weight:700; color:var(--cream); line-height:1.05; margin-top:6px;}
+  .invest-card .cap{font-size:14px; color:var(--muted-d2);}
+  .invest-card .calc{font-size:12px; font-style:italic; color:var(--muted-d);}
+  .invest-card hr{border:none; height:1px; background:rgba(255,255,255,.14); margin:2px 0;}
+  .invest-card .quote{font-size:17px; font-style:italic; color:var(--cream);}
+  .invest-card .desc{font-size:14px; color:var(--muted-d2); line-height:1.4;}
+  .invest-card .dep{font-size:13px; color:var(--muted-d); margin-top:auto;}
+  .invest-card .dep b{color:var(--cream); display:block; font-weight:600; font-size:14px;}
+
+  /* recommendation slide */
+  .rec-layout{display:grid; grid-template-columns:1fr 1.2fr; gap:36px; align-items:stretch;}
+  @media(max-width:860px){.rec-layout{grid-template-columns:1fr;}}
+  .rec-card{background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); border-radius:20px; padding:36px; display:flex; flex-direction:column; justify-content:center; gap:16px;}
+  .rec-card h3{font-size:clamp(26px,3vw,36px); color:var(--gold); line-height:1.2;}
+  .evidence{display:flex; flex-direction:column; gap:18px; justify-content:center;}
+  .evidence .row{display:flex; gap:16px;}
+  .evidence .dot{width:8px; height:8px; border-radius:4px; background:var(--gold); margin-top:8px; flex:none;}
+  .evidence .label{font-size:13px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:var(--muted-d);}
+  .evidence p.body-text{font-size:16px; line-height:1.45; color:var(--cream);}
+
+  /* staircase */
+  .stair-wrap{display:grid; grid-template-columns:3fr 1.35fr; gap:22px; align-items:stretch;}
+  @media(max-width:860px){.stair-wrap{grid-template-columns:1fr;}}
+  .stair-group{background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.14); border-radius:20px; padding:26px 24px; display:flex; flex-direction:column; gap:20px;}
+  .stair-group>.tag{font-size:13px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted-d); white-space:nowrap;}
+  .stair-cols{display:flex; gap:18px; align-items:flex-end;}
+  @media(max-width:640px){.stair-cols{flex-direction:column; align-items:stretch;}}
+  .stair-col{flex:1; display:flex; flex-direction:column; align-items:center; gap:10px;}
+  .stair-col .badge{width:36px; height:36px; border-radius:50%; background:var(--cream); display:flex; align-items:center; justify-content:center; font-weight:700; color:var(--dark);}
+  .stair-col p.t{font-size:16px; font-weight:700; text-align:center;}
+  .stair-col p.d{font-size:13px; color:var(--muted-d2); text-align:center; line-height:1.35;}
+  .stair-col .riser{width:100%; border-radius:8px 8px 0 0; background:rgba(247,244,236,.22);}
+  .stair-final{background:rgba(232,197,71,.12); border:2px solid var(--gold); border-radius:20px; padding:26px 24px; display:flex; flex-direction:column; align-items:center; text-align:center; justify-content:flex-start; gap:14px;}
+  .stair-final .tag{font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--gold); white-space:nowrap; align-self:stretch;}
+  .stair-final .badge{width:36px; height:36px; border-radius:50%; background:var(--gold); display:flex; align-items:center; justify-content:center; font-weight:700; color:var(--dark); margin-top:6px;}
+  .stair-final p.t{font-size:17px; font-weight:700; color:var(--gold);}
+  .stair-final p.d{font-size:14px; color:var(--cream); line-height:1.4;}
+  .weekstrip{display:flex; align-items:center; gap:16px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); border-radius:14px; padding:16px 24px;}
+  .weekstrip .label{font-size:13px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:var(--muted-d); white-space:nowrap;}
+  .weekstrip p.body-text{font-size:15px; color:var(--cream);}
+
+  /* timeline */
+  .tl-track{position:relative; display:flex; justify-content:space-between; padding:0 4%; margin-bottom:4px;}
+  .tl-track::before{content:""; position:absolute; left:4%; right:4%; top:9px; height:2px; background:rgba(255,255,255,.25);}
+  .tl-track .pt{display:flex; flex-direction:column; align-items:center; gap:10px; z-index:1; flex:1;}
+  .tl-track .pt .dot{width:18px; height:18px; border-radius:50%; background:var(--muted-d2); border:4px solid var(--dark2);}
+  .tl-track .pt.final .dot{background:var(--gold); width:20px; height:20px;}
+  .tl-track .pt p{font-size:14px; font-weight:700; text-align:center; color:var(--cream);}
+  .tl-track .pt.final p{color:var(--gold);}
+  .tl-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:18px;}
+  @media(max-width:900px){.tl-grid{grid-template-columns:1fr 1fr;}}
+  @media(max-width:640px){.tl-grid{grid-template-columns:1fr;}}
+  .tl-card{background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); border-radius:16px; padding:20px 18px; display:flex; flex-direction:column; gap:10px;}
+  .tl-card .t{font-size:16px; font-weight:700; color:var(--cream);}
+  .tl-card .k{font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--muted-d);}
+  .tl-card .k.gate{color:var(--gold);}
+  .tl-card p.d{font-size:13px; color:var(--muted-d2); line-height:1.4;}
+  .tl-card p.gate-text{font-size:13px; color:var(--cream); font-style:italic; line-height:1.4;}
+  .tl-card.final{background:rgba(232,197,71,.14); border:2px solid var(--gold); justify-content:center;}
+  .tl-card.final .t{color:var(--gold); font-size:19px;}
+  .tl-card.final p.d{color:var(--cream); font-size:15px;}
+
+  /* teaser investment cards (three possible investments) */
+  .teaser-card .achieve-label, .teaser-card .challenge-label{font-size:12px; font-weight:700; letter-spacing:1.3px; text-transform:uppercase; color:var(--muted-d); margin-top:4px;}
+  .teaser-card p.achieve-text, .teaser-card p.challenge-text{font-size:14px; color:var(--muted-d2); line-height:1.4;}
+  .teaser-card .head p{color:var(--gold); text-align:center;}
+
+  /* outcome questions row */
+  .outcome-questions{display:flex; flex-wrap:wrap; gap:16px 44px; justify-content:center; padding:10px 0;}
+  .outcome-questions p{font-size:clamp(16px,1.8vw,19px); font-weight:600; color:var(--text-dark);}
+
+  /* containment target pill */
+  .pill-badge{align-self:center; border:1px solid var(--gold); color:var(--gold); border-radius:999px; padding:10px 26px; font-size:15px; font-weight:700;}
+
+  a.print-hint{display:none;}
+
+  @media(max-width:640px){
+    #nav{display:none;}
+    #mobileCounter{display:flex; align-items:center; gap:6px;}
+    section.slide{padding:120px 6vw 90px;}
+  }
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+<div id="topLabel"><svg viewBox="234 102 118 123" width="16" height="17"><path fill="#F7F4EC" d="M253.073 164.623C247.967 165.616 237.755 172.838 241.997 194.329C258.483 208.746 269.845 203.52 273.258 199.592C271.565 204.514 272.715 216.961 293.443 224.036C314.18 216.961 315.321 204.514 313.628 199.592C317.041 203.52 328.403 208.746 344.889 194.329C349.131 172.838 338.928 165.616 333.813 164.623C338.919 163.629 349.131 156.407 344.889 134.916C328.403 120.499 317.041 125.725 313.628 129.653C315.321 124.731 314.171 112.284 293.443 105.209C272.706 112.284 271.565 124.731 273.258 129.653C269.845 125.725 258.483 120.499 241.997 134.916C237.755 156.407 247.958 163.629 253.073 164.623ZM335.634 140.261C340.069 147.952 338.937 157.732 332.902 164.199C328.845 152.727 322.055 150.022 316.425 151.347C320.39 147.133 321.439 139.902 313.536 130.656C322.147 128.66 331.191 132.57 335.634 140.261ZM310.021 164.623C312.432 163.758 317.565 161.66 315.9 152.147C321.301 153.849 325.045 158.928 325.045 164.623C325.045 170.317 321.301 175.387 315.9 177.098C317.575 167.585 312.441 165.497 310.021 164.623ZM270.986 177.098C265.585 175.396 261.841 170.317 261.841 164.623C261.841 158.928 265.585 153.859 270.986 152.147C269.311 161.66 274.445 163.749 276.865 164.623C274.454 165.487 269.321 167.585 270.986 177.098ZM285.154 150.271C283.194 148.615 278.815 145.22 271.418 151.421C270.195 145.891 272.715 140.114 277.647 137.262C282.578 134.419 288.843 135.118 293.02 138.945C283.949 142.257 284.703 147.741 285.154 150.271ZM271.418 177.843C278.815 184.044 283.194 180.649 285.154 178.993C284.703 181.514 283.949 187.006 293.02 190.318C288.843 194.145 282.578 194.854 277.647 192.002C272.715 189.159 270.195 183.372 271.418 177.843ZM285.641 178.156C282.026 179.159 278.291 177.521 276.497 174.421C274.703 171.32 275.153 167.263 277.831 164.632C275.153 162.01 274.703 157.943 276.497 154.843C278.291 151.743 282.026 150.105 285.641 151.108C286.58 147.474 289.864 145.063 293.452 145.054C297.031 145.054 300.325 147.474 301.263 151.099C304.879 150.096 308.614 151.733 310.408 154.834C312.202 157.934 311.751 161.991 309.074 164.623C311.751 167.245 312.202 171.311 310.408 174.411C308.614 177.512 304.879 179.149 301.263 178.147C300.325 181.781 297.04 184.191 293.452 184.2C289.873 184.2 286.58 181.781 285.641 178.156ZM293.875 138.955C298.052 135.127 304.317 134.419 309.249 137.271C314.18 140.114 316.701 145.901 315.477 151.43C308.08 145.229 303.701 148.624 301.741 150.28C302.192 147.759 302.947 142.267 293.875 138.955ZM301.741 178.993C303.701 180.649 308.08 184.044 315.477 177.843C316.701 183.372 314.18 189.15 309.249 192.002C304.317 194.845 298.052 194.145 293.875 190.318C302.947 187.006 302.192 181.523 301.741 178.993ZM293.452 115.918C302.33 115.918 310.233 121.797 312.818 130.251C300.858 128.025 295.127 132.551 293.452 138.09C291.787 132.551 286.046 128.025 274.086 130.251C276.662 121.797 284.574 115.918 293.452 115.918ZM253.993 164.209C247.958 157.75 246.827 147.961 251.261 140.27C255.695 132.579 264.748 128.669 273.359 130.665C265.457 139.911 266.505 147.143 270.471 151.356C264.84 150.031 258.051 152.736 253.993 164.209ZM253.993 165.046C258.051 176.518 264.831 179.214 270.471 177.898C266.505 182.112 265.457 189.343 273.359 198.589C264.748 200.585 255.705 196.675 251.261 188.984C246.827 181.293 247.958 171.513 253.993 165.046ZM293.452 213.337C284.574 213.337 276.671 207.458 274.086 199.003C286.046 201.229 291.778 196.703 293.452 191.165C295.117 196.703 300.858 201.229 312.818 199.003C310.242 207.458 302.33 213.337 293.452 213.337ZM335.643 188.975C331.209 196.666 322.156 200.576 313.545 198.58C321.448 189.334 320.399 182.103 316.434 177.889C322.064 179.214 328.854 176.509 332.902 165.037C338.937 171.495 340.078 181.284 335.634 188.975H335.643ZM301.263 169.121V160.105L293.452 155.597L285.641 160.105V169.121L293.452 173.629L301.263 169.121Z"/></svg><span class="idx">01</span><span>NorthStar Mobile — Agent Strategy Review</span></div>
+
+<nav id="nav"></nav>
+<div id="mobileCounter"><span class="cur">1</span> / <span class="tot">11</span></div>
+
+<!-- 01 COVER -->
+<section class="slide slide--dark title-slide" id="cover" data-title="Cover">
+  <div class="inner">
+    <div class="brandrow reveal">
+      <svg viewBox="234 102 118 123" width="34" height="36"><path fill="#F7F4EC" d="M253.073 164.623C247.967 165.616 237.755 172.838 241.997 194.329C258.483 208.746 269.845 203.52 273.258 199.592C271.565 204.514 272.715 216.961 293.443 224.036C314.18 216.961 315.321 204.514 313.628 199.592C317.041 203.52 328.403 208.746 344.889 194.329C349.131 172.838 338.928 165.616 333.813 164.623C338.919 163.629 349.131 156.407 344.889 134.916C328.403 120.499 317.041 125.725 313.628 129.653C315.321 124.731 314.171 112.284 293.443 105.209C272.706 112.284 271.565 124.731 273.258 129.653C269.845 125.725 258.483 120.499 241.997 134.916C237.755 156.407 247.958 163.629 253.073 164.623ZM335.634 140.261C340.069 147.952 338.937 157.732 332.902 164.199C328.845 152.727 322.055 150.022 316.425 151.347C320.39 147.133 321.439 139.902 313.536 130.656C322.147 128.66 331.191 132.57 335.634 140.261ZM310.021 164.623C312.432 163.758 317.565 161.66 315.9 152.147C321.301 153.849 325.045 158.928 325.045 164.623C325.045 170.317 321.301 175.387 315.9 177.098C317.575 167.585 312.441 165.497 310.021 164.623ZM270.986 177.098C265.585 175.396 261.841 170.317 261.841 164.623C261.841 158.928 265.585 153.859 270.986 152.147C269.311 161.66 274.445 163.749 276.865 164.623C274.454 165.487 269.321 167.585 270.986 177.098ZM285.154 150.271C283.194 148.615 278.815 145.22 271.418 151.421C270.195 145.891 272.715 140.114 277.647 137.262C282.578 134.419 288.843 135.118 293.02 138.945C283.949 142.257 284.703 147.741 285.154 150.271ZM271.418 177.843C278.815 184.044 283.194 180.649 285.154 178.993C284.703 181.514 283.949 187.006 293.02 190.318C288.843 194.145 282.578 194.854 277.647 192.002C272.715 189.159 270.195 183.372 271.418 177.843ZM285.641 178.156C282.026 179.159 278.291 177.521 276.497 174.421C274.703 171.32 275.153 167.263 277.831 164.632C275.153 162.01 274.703 157.943 276.497 154.843C278.291 151.743 282.026 150.105 285.641 151.108C286.58 147.474 289.864 145.063 293.452 145.054C297.031 145.054 300.325 147.474 301.263 151.099C304.879 150.096 308.614 151.733 310.408 154.834C312.202 157.934 311.751 161.991 309.074 164.623C311.751 167.245 312.202 171.311 310.408 174.411C308.614 177.512 304.879 179.149 301.263 178.147C300.325 181.781 297.04 184.191 293.452 184.2C289.873 184.2 286.58 181.781 285.641 178.156ZM293.875 138.955C298.052 135.127 304.317 134.419 309.249 137.271C314.18 140.114 316.701 145.901 315.477 151.43C308.08 145.229 303.701 148.624 301.741 150.28C302.192 147.759 302.947 142.267 293.875 138.955ZM301.741 178.993C303.701 180.649 308.08 184.044 315.477 177.843C316.701 183.372 314.18 189.15 309.249 192.002C304.317 194.845 298.052 194.145 293.875 190.318C302.947 187.006 302.192 181.523 301.741 178.993ZM293.452 115.918C302.33 115.918 310.233 121.797 312.818 130.251C300.858 128.025 295.127 132.551 293.452 138.09C291.787 132.551 286.046 128.025 274.086 130.251C276.662 121.797 284.574 115.918 293.452 115.918ZM253.993 164.209C247.958 157.75 246.827 147.961 251.261 140.27C255.695 132.579 264.748 128.669 273.359 130.665C265.457 139.911 266.505 147.143 270.471 151.356C264.84 150.031 258.051 152.736 253.993 164.209ZM253.993 165.046C258.051 176.518 264.831 179.214 270.471 177.898C266.505 182.112 265.457 189.343 273.359 198.589C264.748 200.585 255.705 196.675 251.261 188.984C246.827 181.293 247.958 171.513 253.993 165.046ZM293.452 213.337C284.574 213.337 276.671 207.458 274.086 199.003C286.046 201.229 291.778 196.703 293.452 191.165C295.117 196.703 300.858 201.229 312.818 199.003C310.242 207.458 302.33 213.337 293.452 213.337ZM335.643 188.975C331.209 196.666 322.156 200.576 313.545 198.58C321.448 189.334 320.399 182.103 316.434 177.889C322.064 179.214 328.854 176.509 332.902 165.037C338.937 171.495 340.078 181.284 335.634 188.975H335.643ZM301.263 169.121V160.105L293.452 155.597L285.641 160.105V169.121L293.452 173.629L301.263 169.121Z"/></svg>
+      <p>Sierra</p>
+    </div>
+    <div class="titleblock">
+      <p class="eyebrow reveal r1">Sierra × NorthStar Mobile</p>
+      <h1 class="reveal r2">NorthStar Mobile: Agent Strategy Review</h1>
+      <p class="sub reveal r3">Where the website agent stands today, and where the next quarter of investment should go.</p>
+    </div>
+    <div class="footer-meta reveal r4">
+      <p>LDS · Agent Strategy</p>
+      <p>Internal working review · Sierra Confidential</p>
+    </div>
+  </div>
+  <div class="scrollcue">Scroll<span style="font-size:16px;">↓</span></div>
+</section>
+
+<!-- 02 FIRST AGENT -->
+<section class="slide slide--light" id="first-agent" data-title="The starting point">
+  <div class="inner">
+    <div class="fa-layout">
+      <div class="fa-copy">
+        <p class="eyebrow reveal">The starting point</p>
+        <h2 class="reveal r1">A capable agent, still narrowly scoped</h2>
+        <p class="lede reveal r2">Launched three months ago. Today it can:</p>
+        <ul class="feature-list reveal r3">
+          <li>Answer FAQs about billing policies, coverage, device protection and store hours.</li>
+          <li>Look up plan details, bill status and payment due dates.</li>
+          <li>Route customers to live agents.</li>
+        </ul>
+        <div class="callout callout--light callout--compact reveal r4">
+          <p class="label">Decision ahead</p>
+          <p class="body-text">NorthStar has capacity for one meaningful expansion over the next two quarters.</p>
+        </div>
+      </div>
+      <div class="fa-media reveal r3">
+        <img id="faImage" src="data:image/jpeg;base64,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" alt="NorthStar Mobile chat agent helping a customer upgrade a data plan, shown on a phone">
+      </div>
+    </div>
+    <div class="footer-meta">
+      <p>Sierra × NorthStar Mobile · Agent Strategy Review</p>
+      <p class="pagenum">02</p>
+    </div>
+  </div>
+</section>
+
+<!-- 03 INITIAL RESULTS -->
+<section class="slide slide--light" id="initial-results" data-title="Initial results">
+  <div class="inner">
+    <p class="eyebrow reveal">Initial results</p>
+    <h2 class="reveal r1">High reach, mixed satisfaction</h2>
+    <div class="stat-grid reveal r2">
+      <div class="stat-card"><p class="k">Monthly reach</p><p class="v">22M website sessions</p></div>
+      <div class="stat-card"><p class="k">Monthly reach</p><p class="v">2.1M agent conversations</p></div>
+      <div class="stat-card"><p class="k">Agent performance</p><p class="v">45% containment</p></div>
+      <div class="stat-card"><p class="k">Agent performance</p><p class="v">3.7 CSAT</p></div>
+    </div>
+    <p class="lede reveal r3">Initial sentiment is mixed. The agent handles substantial volume, but executives expected better customer satisfaction.</p>
+    <div class="formula-box reveal r4">
+      <p class="label" style="color:var(--muted-d)">Illustrative value of current containment</p>
+      <p class="formula">2.1M × 45% × 70% × (8⁄60 hr) × $30/hr &nbsp;=&nbsp; <span class="hl">$2.65M / month</span></p>
+      <p class="assump">Assumptions: 70% of contained conversations would otherwise reach a person; each would take eight minutes at a fully loaded cost of $30/hour. This is a hypothetical gross labor equivalent, not measured cash savings.</p>
+    </div>
+    <div class="footer-meta">
+      <p>Sierra × NorthStar Mobile · Agent Strategy Review</p>
+      <p class="pagenum">03</p>
+    </div>
+  </div>
+</section>
+
+<!-- 04 THREE POSSIBLE INVESTMENTS (teaser) -->
+<section class="slide slide--dark" id="investments-teaser" data-title="Three journeys we could build next">
+  <div class="inner">
+    <p class="eyebrow reveal">Three possible investments</p>
+    <h2 class="reveal r1">Three journeys we could build next</h2>
+    <div class="invest-grid reveal r2">
+      <div class="invest-card teaser-card">
+        <div class="head" style="flex-direction:column; gap:10px;"><svg viewBox="0 0 48 48" width="34" height="34"><circle cx="24" cy="24" r="22" fill="none" stroke="#E8C547" stroke-width="2"/><path d="M15 30 L22 22 L27 27 L34 16" fill="none" stroke="#E8C547" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M27 16 H34 V23" fill="none" stroke="#E8C547" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg><p>A. Plan &amp; Upgrade Advisor</p></div>
+        <p class="achieve-label">What NorthStar could achieve</p><p class="achieve-text">Help customers choose a suitable plan and complete upgrades</p>
+        <p class="challenge-label">Main challenge</p><p class="challenge-text">Accurate eligibility, pricing and transaction access</p>
+      </div>
+      <div class="invest-card teaser-card">
+        <div class="head" style="flex-direction:column; gap:10px;"><svg viewBox="0 0 48 48" width="34" height="34"><circle cx="24" cy="24" r="22" fill="none" stroke="#E8C547" stroke-width="2"/><rect x="17" y="14" width="14" height="20" rx="2" fill="none" stroke="#E8C547" stroke-width="2.2"/><line x1="20" y1="19" x2="28" y2="19" stroke="#E8C547" stroke-width="2"/><line x1="20" y1="24" x2="28" y2="24" stroke="#E8C547" stroke-width="2"/><line x1="20" y1="29" x2="25" y2="29" stroke="#E8C547" stroke-width="2"/></svg><p>B. Billing &amp; Payment Resolution</p></div>
+        <p class="achieve-label">What NorthStar could achieve</p><p class="achieve-text">Resolve a high volume of billing issues without repeat contact</p>
+        <p class="challenge-label">Main challenge</p><p class="challenge-text">Deep integrations and costly mistakes on sensitive issues</p>
+      </div>
+      <div class="invest-card teaser-card">
+        <div class="head" style="flex-direction:column; gap:10px;"><svg viewBox="0 0 48 48" width="34" height="34"><circle cx="24" cy="24" r="22" fill="none" stroke="#E8C547" stroke-width="2"/><path d="M30 16a5 5 0 0 0-6.9 5.9L14 31l3 3 9.1-9.1A5 5 0 0 0 32 18l-3.5 3.5-2-2L30 16z" fill="none" stroke="#E8C547" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><p>C. Technical Support Concierge</p></div>
+        <p class="achieve-label">What NorthStar could achieve</p><p class="achieve-text">Help customers through frustrating faults and outages</p>
+        <p class="challenge-label">Main challenge</p><p class="challenge-text">Wide variation in problems and uncertain diagnoses</p>
+      </div>
+    </div>
+    <div class="footer-meta">
+      <p>Sierra × NorthStar Mobile · Agent Strategy Review</p>
+      <p class="pagenum">04</p>
+    </div>
+  </div>
+</section>
+
+<!-- 05 DIVIDER: FINDING OUR BEARINGS -->
+<section class="slide slide--dark title-slide" id="divider-bearings" data-title="Finding our bearings">
+  <div class="inner">
+    <div class="brandrow reveal">
+      <svg viewBox="234 102 118 123" width="24" height="25"><path fill="#F7F4EC" d="M253.073 164.623C247.967 165.616 237.755 172.838 241.997 194.329C258.483 208.746 269.845 203.52 273.258 199.592C271.565 204.514 272.715 216.961 293.443 224.036C314.18 216.961 315.321 204.514 313.628 199.592C317.041 203.52 328.403 208.746 344.889 194.329C349.131 172.838 338.928 165.616 333.813 164.623C338.919 163.629 349.131 156.407 344.889 134.916C328.403 120.499 317.041 125.725 313.628 129.653C315.321 124.731 314.171 112.284 293.443 105.209C272.706 112.284 271.565 124.731 273.258 129.653C269.845 125.725 258.483 120.499 241.997 134.916C237.755 156.407 247.958 163.629 253.073 164.623ZM335.634 140.261C340.069 147.952 338.937 157.732 332.902 164.199C328.845 152.727 322.055 150.022 316.425 151.347C320.39 147.133 321.439 139.902 313.536 130.656C322.147 128.66 331.191 132.57 335.634 140.261ZM310.021 164.623C312.432 163.758 317.565 161.66 315.9 152.147C321.301 153.849 325.045 158.928 325.045 164.623C325.045 170.317 321.301 175.387 315.9 177.098C317.575 167.585 312.441 165.497 310.021 164.623ZM270.986 177.098C265.585 175.396 261.841 170.317 261.841 164.623C261.841 158.928 265.585 153.859 270.986 152.147C269.311 161.66 274.445 163.749 276.865 164.623C274.454 165.487 269.321 167.585 270.986 177.098ZM285.154 150.271C283.194 148.615 278.815 145.22 271.418 151.421C270.195 145.891 272.715 140.114 277.647 137.262C282.578 134.419 288.843 135.118 293.02 138.945C283.949 142.257 284.703 147.741 285.154 150.271ZM271.418 177.843C278.815 184.044 283.194 180.649 285.154 178.993C284.703 181.514 283.949 187.006 293.02 190.318C288.843 194.145 282.578 194.854 277.647 192.002C272.715 189.159 270.195 183.372 271.418 177.843ZM285.641 178.156C282.026 179.159 278.291 177.521 276.497 174.421C274.703 171.32 275.153 167.263 277.831 164.632C275.153 162.01 274.703 157.943 276.497 154.843C278.291 151.743 282.026 150.105 285.641 151.108C286.58 147.474 289.864 145.063 293.452 145.054C297.031 145.054 300.325 147.474 301.263 151.099C304.879 150.096 308.614 151.733 310.408 154.834C312.202 157.934 311.751 161.991 309.074 164.623C311.751 167.245 312.202 171.311 310.408 174.411C308.614 177.512 304.879 179.149 301.263 178.147C300.325 181.781 297.04 184.191 293.452 184.2C289.873 184.2 286.58 181.781 285.641 178.156ZM293.875 138.955C298.052 135.127 304.317 134.419 309.249 137.271C314.18 140.114 316.701 145.901 315.477 151.43C308.08 145.229 303.701 148.624 301.741 150.28C302.192 147.759 302.947 142.267 293.875 138.955ZM301.741 178.993C303.701 180.649 308.08 184.044 315.477 177.843C316.701 183.372 314.18 189.15 309.249 192.002C304.317 194.845 298.052 194.145 293.875 190.318C302.947 187.006 302.192 181.523 301.741 178.993ZM293.452 115.918C302.33 115.918 310.233 121.797 312.818 130.251C300.858 128.025 295.127 132.551 293.452 138.09C291.787 132.551 286.046 128.025 274.086 130.251C276.662 121.797 284.574 115.918 293.452 115.918ZM253.993 164.209C247.958 157.75 246.827 147.961 251.261 140.27C255.695 132.579 264.748 128.669 273.359 130.665C265.457 139.911 266.505 147.143 270.471 151.356C264.84 150.031 258.051 152.736 253.993 164.209ZM253.993 165.046C258.051 176.518 264.831 179.214 270.471 177.898C266.505 182.112 265.457 189.343 273.359 198.589C264.748 200.585 255.705 196.675 251.261 188.984C246.827 181.293 247.958 171.513 253.993 165.046ZM293.452 213.337C284.574 213.337 276.671 207.458 274.086 199.003C286.046 201.229 291.778 196.703 293.452 191.165C295.117 196.703 300.858 201.229 312.818 199.003C310.242 207.458 302.33 213.337 293.452 213.337ZM335.643 188.975C331.209 196.666 322.156 200.576 313.545 198.58C321.448 189.334 320.399 182.103 316.434 177.889C322.064 179.214 328.854 176.509 332.902 165.037C338.937 171.495 340.078 181.284 335.634 188.975H335.643ZM301.263 169.121V160.105L293.452 155.597L285.641 160.105V169.121L293.452 173.629L301.263 169.121Z"/></svg>
+      <p>sierra</p>
+    </div>
+    <div class="titleblock">
+      <h1 class="reveal r1">Finding our bearings</h1>
+      <p class="sub reveal r2">Three months of results</p>
+    </div>
+    <div class="footer-meta reveal r3">
+      <p>[name@sierra.ai]</p>
+      <p>sierra.ai</p>
+    </div>
+  </div>
+</section>
+
+<!-- 06 BEYOND AVERAGE -->
+<section class="slide slide--light" id="beyond-average" data-title="Beyond the global average">
+  <div class="inner">
+    <p class="eyebrow reveal">Beyond the global average</p>
+    <h2 class="reveal r1">Averages hide where resolution breaks down</h2>
+    <p class="lede reveal r2">Illustrative hypotheses to validate with NorthStar data — share of conversations vs. containment, by reason for contact.</p>
+    <div class="legend reveal r3">
+      <div class="item"><div class="swatch" style="background:#05351D"></div>Share of conversations</div>
+      <div class="item"><div class="swatch" style="background:#A6752B"></div>Containment</div>
+    </div>
+    <div class="bars bars-wrap reveal r4" id="barsWrap">
+      <div class="bar-row"><p class="label">Billing and payments</p><div class="track-group">
+        <div class="bar-line"><div class="track"><div class="fill" style="width:25%; background:#05351D"></div></div><span class="val">25%</span></div>
+        <div class="bar-line"><div class="track"><div class="fill" style="width:45%; background:#A6752B"></div></div><span class="val">45%</span></div>
+      </div></div>
+      <div class="bar-row"><p class="label">Technical issues</p><div class="track-group">
+        <div class="bar-line"><div class="track"><div class="fill" style="width:25%; background:#05351D"></div></div><span class="val">25%</span></div>
+        <div class="bar-line"><div class="track"><div class="fill" style="width:25%; background:#A6752B"></div></div><span class="val">25%</span></div>
+      </div></div>
+      <div class="bar-row"><p class="label">Plans and upgrades</p><div class="track-group">
+        <div class="bar-line"><div class="track"><div class="fill" style="width:15%; background:#05351D"></div></div><span class="val">15%</span></div>
+        <div class="bar-line"><div class="track"><div class="fill" style="width:25%; background:#A6752B"></div></div><span class="val">25%</span></div>
+      </div></div>
+      <div class="bar-row"><p class="label">Account and plan lookups</p><div class="track-group">
+        <div class="bar-line"><div class="track"><div class="fill" style="width:20%; background:#05351D"></div></div><span class="val">20%</span></div>
+        <div class="bar-line"><div class="track"><div class="fill" style="width:75%; background:#A6752B"></div></div><span class="val">75%</span></div>
+      </div></div>
+      <div class="bar-row"><p class="label">FAQs</p><div class="track-group">
+        <div class="bar-line"><div class="track"><div class="fill" style="width:10%; background:#05351D"></div></div><span class="val">10%</span></div>
+        <div class="bar-line"><div class="track"><div class="fill" style="width:80%; background:#A6752B"></div></div><span class="val">80%</span></div>
+      </div></div>
+      <div class="bar-row"><p class="label">Other</p><div class="track-group">
+        <div class="bar-line"><div class="track"><div class="fill" style="width:5%; background:#05351D"></div></div><span class="val">5%</span></div>
+        <div class="bar-line"><div class="track"><div class="fill" style="width:15%; background:#A6752B"></div></div><span class="val">15%</span></div>
+      </div></div>
+    </div>
+    <p class="lede reveal r5" style="font-style:italic; font-size:14px;">Every figure is illustrative; the actual mix must come from NorthStar's logs. Weighted across categories, overall containment is 45%.</p>
+    <div class="footer-meta">
+      <p>Sierra × NorthStar Mobile · Agent Strategy Review</p>
+      <p class="pagenum">05</p>
+    </div>
+  </div>
+</section>
+
+<!-- 07 WHY FAIL -->
+<section class="slide slide--light" id="why-fail" data-title="Why conversations fail to resolve">
+  <div class="inner">
+    <p class="eyebrow reveal">Why conversations fail to resolve</p>
+    <h2 class="reveal r1">Follow the case past the transcript</h2>
+    <p class="lede reveal r2">Review handoffs with live agents and classify the reason — illustrative shares to validate against NorthStar's logs.</p>
+    <div class="pie-wrap reveal r3">
+      <svg viewBox="0 0 400 400" aria-label="Pie chart of illustrative reasons for handoff to a live agent">
+        <path d="M200,200 L200,30 A170,170 0 0 1 252.53,361.69 Z" fill="#05351D" stroke="#F7F4EC" stroke-width="3"></path>
+        <path d="M200,200 L252.53,361.69 A170,170 0 0 1 62.47,299.93 Z" fill="#A6752B" stroke="#F7F4EC" stroke-width="3"></path>
+        <path d="M200,200 L62.47,299.93 A170,170 0 0 1 62.47,100.07 Z" fill="#7A5C33" stroke="#F7F4EC" stroke-width="3"></path>
+        <path d="M200,200 L62.47,100.07 A170,170 0 0 1 200,30 Z" fill="#3F6B52" stroke="#F7F4EC" stroke-width="3"></path>
+        <text x="308.65" y="182.8" text-anchor="middle" font-family="DM Sans, Arial, sans-serif" font-size="24" font-weight="700" fill="#F7F4EC">45%</text>
+        <text x="166.01" y="304.62" text-anchor="middle" font-family="DM Sans, Arial, sans-serif" font-size="20" font-weight="700" fill="#F7F4EC">20%</text>
+        <text x="90" y="205" text-anchor="middle" font-family="DM Sans, Arial, sans-serif" font-size="20" font-weight="700" fill="#F7F4EC">20%</text>
+        <text x="150.06" y="101.99" text-anchor="middle" font-family="DM Sans, Arial, sans-serif" font-size="18" font-weight="700" fill="#F7F4EC">15%</text>
+      </svg>
+      <div class="pie-cards">
+        <div class="pie-card" style="border-left-color:#05351D"><div class="top"><p>Missing system access</p><p class="pct" style="color:#05351D">45%</p></div><p class="q">e.g. did resolution need an action the agent cannot take — changing a plan, correcting a bill?</p></div>
+        <div class="pie-card" style="border-left-color:#A6752B"><div class="top"><p>Policy or sensitive decision</p><p class="pct" style="color:#A6752B">20%</p></div><p class="q">e.g. did NorthStar require human review, discretion or approval?</p></div>
+        <div class="pie-card" style="border-left-color:#7A5C33"><div class="top"><p>Customer preference</p><p class="pct" style="color:#7A5C33">20%</p></div><p class="q">e.g. could the agent have helped, but the customer wanted a person?</p></div>
+        <div class="pie-card" style="border-left-color:#3F6B52"><div class="top"><p>Missing knowledge</p><p class="pct" style="color:#3F6B52">15%</p></div><p class="q">e.g. was the answer available in documentation but missed or poorly explained?</p></div>
+      </div>
+    </div>
+    <p class="lede reveal r4" style="font-style:italic; font-size:14px;">Every share is illustrative; the actual mix must come from NorthStar's logs.</p>
+    <div class="footer-meta">
+      <p>Sierra × NorthStar Mobile · Agent Strategy Review</p>
+      <p class="pagenum">06</p>
+    </div>
+  </div>
+</section>
+
+<!-- 08 DIVIDER: SETTING OUR NORTH STAR -->
+<section class="slide slide--dark title-slide" id="divider-northstar" data-title="Setting our North Star">
+  <div class="inner">
+    <div class="brandrow reveal">
+      <svg viewBox="234 102 118 123" width="24" height="25"><path fill="#F7F4EC" d="M253.073 164.623C247.967 165.616 237.755 172.838 241.997 194.329C258.483 208.746 269.845 203.52 273.258 199.592C271.565 204.514 272.715 216.961 293.443 224.036C314.18 216.961 315.321 204.514 313.628 199.592C317.041 203.52 328.403 208.746 344.889 194.329C349.131 172.838 338.928 165.616 333.813 164.623C338.919 163.629 349.131 156.407 344.889 134.916C328.403 120.499 317.041 125.725 313.628 129.653C315.321 124.731 314.171 112.284 293.443 105.209C272.706 112.284 271.565 124.731 273.258 129.653C269.845 125.725 258.483 120.499 241.997 134.916C237.755 156.407 247.958 163.629 253.073 164.623ZM335.634 140.261C340.069 147.952 338.937 157.732 332.902 164.199C328.845 152.727 322.055 150.022 316.425 151.347C320.39 147.133 321.439 139.902 313.536 130.656C322.147 128.66 331.191 132.57 335.634 140.261ZM310.021 164.623C312.432 163.758 317.565 161.66 315.9 152.147C321.301 153.849 325.045 158.928 325.045 164.623C325.045 170.317 321.301 175.387 315.9 177.098C317.575 167.585 312.441 165.497 310.021 164.623ZM270.986 177.098C265.585 175.396 261.841 170.317 261.841 164.623C261.841 158.928 265.585 153.859 270.986 152.147C269.311 161.66 274.445 163.749 276.865 164.623C274.454 165.487 269.321 167.585 270.986 177.098ZM285.154 150.271C283.194 148.615 278.815 145.22 271.418 151.421C270.195 145.891 272.715 140.114 277.647 137.262C282.578 134.419 288.843 135.118 293.02 138.945C283.949 142.257 284.703 147.741 285.154 150.271ZM271.418 177.843C278.815 184.044 283.194 180.649 285.154 178.993C284.703 181.514 283.949 187.006 293.02 190.318C288.843 194.145 282.578 194.854 277.647 192.002C272.715 189.159 270.195 183.372 271.418 177.843ZM285.641 178.156C282.026 179.159 278.291 177.521 276.497 174.421C274.703 171.32 275.153 167.263 277.831 164.632C275.153 162.01 274.703 157.943 276.497 154.843C278.291 151.743 282.026 150.105 285.641 151.108C286.58 147.474 289.864 145.063 293.452 145.054C297.031 145.054 300.325 147.474 301.263 151.099C304.879 150.096 308.614 151.733 310.408 154.834C312.202 157.934 311.751 161.991 309.074 164.623C311.751 167.245 312.202 171.311 310.408 174.411C308.614 177.512 304.879 179.149 301.263 178.147C300.325 181.781 297.04 184.191 293.452 184.2C289.873 184.2 286.58 181.781 285.641 178.156ZM293.875 138.955C298.052 135.127 304.317 134.419 309.249 137.271C314.18 140.114 316.701 145.901 315.477 151.43C308.08 145.229 303.701 148.624 301.741 150.28C302.192 147.759 302.947 142.267 293.875 138.955ZM301.741 178.993C303.701 180.649 308.08 184.044 315.477 177.843C316.701 183.372 314.18 189.15 309.249 192.002C304.317 194.845 298.052 194.145 293.875 190.318C302.947 187.006 302.192 181.523 301.741 178.993ZM293.452 115.918C302.33 115.918 310.233 121.797 312.818 130.251C300.858 128.025 295.127 132.551 293.452 138.09C291.787 132.551 286.046 128.025 274.086 130.251C276.662 121.797 284.574 115.918 293.452 115.918ZM253.993 164.209C247.958 157.75 246.827 147.961 251.261 140.27C255.695 132.579 264.748 128.669 273.359 130.665C265.457 139.911 266.505 147.143 270.471 151.356C264.84 150.031 258.051 152.736 253.993 164.209ZM253.993 165.046C258.051 176.518 264.831 179.214 270.471 177.898C266.505 182.112 265.457 189.343 273.359 198.589C264.748 200.585 255.705 196.675 251.261 188.984C246.827 181.293 247.958 171.513 253.993 165.046ZM293.452 213.337C284.574 213.337 276.671 207.458 274.086 199.003C286.046 201.229 291.778 196.703 293.452 191.165C295.117 196.703 300.858 201.229 312.818 199.003C310.242 207.458 302.33 213.337 293.452 213.337ZM335.643 188.975C331.209 196.666 322.156 200.576 313.545 198.58C321.448 189.334 320.399 182.103 316.434 177.889C322.064 179.214 328.854 176.509 332.902 165.037C338.937 171.495 340.078 181.284 335.634 188.975H335.643ZM301.263 169.121V160.105L293.452 155.597L285.641 160.105V169.121L293.452 173.629L301.263 169.121Z"/></svg>
+      <p>sierra</p>
+    </div>
+    <div class="titleblock">
+      <h1 class="reveal r1">Setting our North Star</h1>
+      <p class="sub reveal r2">One focused investment and a six-month delivery plan</p>
+    </div>
+    <div class="footer-meta reveal r3">
+      <p>[name@sierra.ai]</p>
+      <p>sierra.ai</p>
+    </div>
+  </div>
+</section>
+
+<!-- 09 OUTCOMES -->
+<section class="slide slide--light" id="outcomes" data-title="The outcomes that matter">
+  <div class="inner">
+    <p class="eyebrow reveal">The outcomes that matter</p>
+    <h2 class="reveal r1">Measuring resolution, not just containment</h2>
+    <div class="outcome-questions reveal r2">
+      <p>Did the customer get help?</p>
+      <p>Was the experience good?</p>
+      <p>Did we reduce support work?</p>
+      <p>Did the journey create business value?</p>
+    </div>
+    <div class="callout callout--dark reveal r3">
+      <p class="label">Primary customer outcome</p>
+      <p class="body-text">The issue is resolved, with no repeat contact about the same issue within seven days.</p>
+    </div>
+    <div class="footer-meta">
+      <p>Sierra × NorthStar Mobile · Agent Strategy Review</p>
+      <p class="pagenum">07</p>
+    </div>
+  </div>
+</section>
+
+<!-- 10 INVESTMENTS -->
+<section class="slide slide--dark pin-scroll" id="investments" data-title="Sizing the opportunity" style="min-height:230vh;">
+  <div class="sticky-stage"><div class="inner">
+    <p class="eyebrow reveal">Sizing the opportunity</p>
+    <h2 class="reveal r1">Three journeys, three different opportunity pools</h2>
+    <div class="invest-grid">
+      <div class="invest-card reveal-step">
+        <div class="head"><svg viewBox="0 0 48 48" width="30" height="30"><circle cx="24" cy="24" r="22" fill="none" stroke="#E8C547" stroke-width="2"/><path d="M15 30 L22 22 L27 27 L34 16" fill="none" stroke="#E8C547" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M27 16 H34 V23" fill="none" stroke="#E8C547" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg><p>A. Plan &amp; Upgrade Advisor</p></div>
+        <p class="bignum">~236k</p><p class="cap">uncontained conversations / month</p><p class="calc">15% of 2.1M conversations × 75% uncontained</p>
+        <hr><p class="quote">&ldquo;Which plan is right for me?&rdquo;</p><p class="desc">Compare suitable plans and complete eligible plan or device changes.</p>
+        <div class="dep"><b>Key dependency</b>Eligibility, pricing and checkout</div>
+      </div>
+      <div class="invest-card reveal-step">
+        <div class="head"><svg viewBox="0 0 48 48" width="30" height="30"><circle cx="24" cy="24" r="22" fill="none" stroke="#E8C547" stroke-width="2"/><rect x="17" y="14" width="14" height="20" rx="2" fill="none" stroke="#E8C547" stroke-width="2.2"/><line x1="20" y1="19" x2="28" y2="19" stroke="#E8C547" stroke-width="2"/><line x1="20" y1="24" x2="28" y2="24" stroke="#E8C547" stroke-width="2"/><line x1="20" y1="29" x2="25" y2="29" stroke="#E8C547" stroke-width="2"/></svg><p>B. Billing &amp; Payment Resolution</p></div>
+        <p class="bignum">~289k</p><p class="cap">uncontained conversations / month</p><p class="calc">25% of 2.1M × 55% uncontained</p>
+        <hr><p class="quote">&ldquo;Why is my bill higher?&rdquo;</p><p class="desc">Explain charges, take payments and resolve defined billing issues.</p>
+        <div class="dep"><b>Key dependency</b>Billing and payment system access</div>
+      </div>
+      <div class="invest-card reveal-step">
+        <div class="head"><svg viewBox="0 0 48 48" width="30" height="30"><circle cx="24" cy="24" r="22" fill="none" stroke="#E8C547" stroke-width="2"/><path d="M30 16a5 5 0 0 0-6.9 5.9L14 31l3 3 9.1-9.1A5 5 0 0 0 32 18l-3.5 3.5-2-2L30 16z" fill="none" stroke="#E8C547" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><p>C. Technical Support Concierge</p></div>
+        <p class="bignum">~394k</p><p class="cap">uncontained conversations / month</p><p class="calc">25% of 2.1M × 75% uncontained</p>
+        <hr><p class="quote">&ldquo;Why isn&rsquo;t my service working?&rdquo;</p><p class="desc">Diagnose common faults, explain outages and coordinate repairs.</p>
+        <div class="dep"><b>Key dependency</b>Diagnostic, outage and repair data</div>
+      </div>
+    </div>
+    <p class="reveal-step" style="font-size:13px; font-style:italic; color:var(--muted-d);">Conversation shares and intent-level containment are illustrative hypotheses from Slide 4; monthly totals use NorthStar's stated 2.1M conversations.</p>
+    <div class="footer-meta">
+      <p>Sierra × NorthStar Mobile · Agent Strategy Review</p>
+      <p class="pagenum">08</p>
+    </div>
+  </div></div>
+</section>
+
+<!-- 11 PLAN & UPGRADE ADVISOR OFFERS A CLEARER PATH -->
+<section class="slide slide--dark pin-scroll" id="choosing" data-title="Plan &amp; Upgrade Advisor Offers a Clearer Path" style="min-height:210vh;">
+  <div class="sticky-stage"><div class="inner">
+    <p class="eyebrow reveal">The Sierra recommendation</p>
+    <h2 class="reveal r1">Plan &amp; Upgrade Advisor Offers a Clearer Path</h2>
+    <div class="evidence" style="margin-top:8px; gap:26px;">
+      <div class="row reveal-step"><div class="dot"></div><div><p class="label">Concrete outcome</p><p class="body-text">The customer completes an eligible plan or device upgrade. We can verify the transaction immediately.</p></div></div>
+      <div class="row reveal-step"><div class="dot"></div><div><p class="label">Measurable business benefit</p><p class="body-text">We can compare completion rates against the existing journey and measure incremental contribution margin.</p></div></div>
+      <div class="row reveal-step"><div class="dot"></div><div><p class="label">More actionable than the other plans</p><p class="body-text">Billing explanations require a correction to resolve the issue. Technical guidance requires network intervention or repair.</p></div></div>
+    </div>
+    <div class="footer-meta">
+      <p>Sierra × NorthStar Mobile · Agent Strategy Review</p>
+      <p class="pagenum">09</p>
+    </div>
+  </div></div>
+</section>
+
+<!-- 10 STRENGTHEN -->
+<section class="slide slide--dark pin-scroll" id="strengthen" data-title="Strengthen the existing agent" style="min-height:230vh;">
+  <div class="sticky-stage"><div class="inner">
+    <p class="eyebrow reveal">In parallel with the new journey</p>
+    <h2 class="reveal r1">Strengthen the existing agent alongside A</h2>
+    <div class="stair-wrap">
+      <div class="stair-group">
+        <p class="tag">Parallel improvement track</p>
+        <div class="stair-cols">
+          <div class="stair-col reveal-step"><div class="badge">1</div><p class="t">Correct answers</p><p class="d">Fix frequent wrong or unclear FAQ responses</p><div class="riser" style="height:70px"></div></div>
+          <div class="stair-col reveal-step"><div class="badge">2</div><p class="t">Better handoffs</p><p class="d">Improve routing and pass conversation context to the live agent</p><div class="riser" style="height:110px"></div></div>
+          <div class="stair-col reveal-step"><div class="badge">3</div><p class="t">Reliable lookups</p><p class="d">Fix authentication, tool failures and stale account information</p><div class="riser" style="height:150px"></div></div>
+        </div>
+      </div>
+      <div class="stair-final reveal-step">
+        <p class="tag">Part of Plan &amp; Upgrade Advisor</p>
+        <div class="badge">4</div>
+        <p class="t">New transactions</p>
+        <p class="d">Build eligibility and upgrade actions as part of Plan &amp; Upgrade Advisor</p>
+      </div>
+    </div>
+    <div class="weekstrip reveal-step">
+      <p class="label">Each week</p>
+      <p class="body-text">Review low-CSAT and repeat-contact cases, identify a recurring failure, add a test, release the fix.</p>
+    </div>
+    <div class="footer-meta">
+      <p>Sierra × NorthStar Mobile · Agent Strategy Review</p>
+      <p class="pagenum">10</p>
+    </div>
+  </div></div>
+</section>
+
+<!-- 11 TIMELINE -->
+<section class="slide slide--dark pin-scroll" id="timeline" data-title="Six months to a scale decision" style="min-height:260vh;">
+  <div class="sticky-stage"><div class="inner">
+    <p class="eyebrow reveal">The path to a success</p>
+    <h2 class="reveal r1">Six months to a scale decision</h2>
+    <div class="reveal r2">
+      <div class="tl-track">
+        <div class="pt"><div class="dot"></div><p>Month 1</p></div>
+        <div class="pt"><div class="dot"></div><p>Months 2–3</p></div>
+        <div class="pt"><div class="dot"></div><p>Months 4–5</p></div>
+        <div class="pt final"><div class="dot"></div><p>Month 6</p></div>
+      </div>
+    </div>
+    <div class="tl-grid">
+      <div class="tl-card reveal-step">
+        <p class="t">Confirm the opportunity</p>
+        <p class="k">Upgrade journey</p><p class="d">Measure distinct eligible customers, current completion and integration readiness.</p>
+        <p class="k">Current agent</p><p class="d">Classify failures; start knowledge and routing fixes.</p>
+        <p class="k gate">Gate</p><p class="gate-text">Can NorthStar support an accurate end-to-end change?</p>
+      </div>
+      <div class="tl-card reveal-step">
+        <p class="t">Build and test</p>
+        <p class="k">Upgrade journey</p><p class="d">Implement a narrow journey and test eligibility, price, consent, execution and handoff.</p>
+        <p class="k">Current agent</p><p class="d">Release fixes and track issue-level outcomes.</p>
+        <p class="k gate">Gate</p><p class="gate-text">Does the journey work reliably on representative cases?</p>
+      </div>
+      <div class="tl-card reveal-step">
+        <p class="t">Controlled pilot</p>
+        <p class="k">Upgrade journey</p><p class="d">Limited eligible traffic, a holdout group and human fallback.</p>
+        <p class="k">Current agent</p><p class="d">Continue weekly review and regression tests.</p>
+        <p class="k gate">Gate</p><p class="gate-text">Do completed suitable changes increase without worse CSAT, complaints or reversals?</p>
+      </div>
+      <div class="tl-card final reveal-step">
+        <p class="t">Decide</p>
+        <p class="d">Scale the journey if it passes.</p>
+        <p class="d">Otherwise revise the scope or change course.</p>
+      </div>
+    </div>
+    <p class="pill-badge reveal-step">Containment Target 50%</p>
+    <div class="footer-meta">
+      <p>Sierra × NorthStar Mobile · Agent Strategy Review</p>
+      <p class="pagenum">11</p>
+    </div>
+  </div></div>
+</section>
+
+<!-- 14 THANK YOU -->
+<section class="slide slide--dark title-slide" id="thank-you" data-title="Thank you">
+  <div class="inner">
+    <div class="brandrow reveal">
+      <svg viewBox="234 102 118 123" width="24" height="25"><path fill="#F7F4EC" d="M253.073 164.623C247.967 165.616 237.755 172.838 241.997 194.329C258.483 208.746 269.845 203.52 273.258 199.592C271.565 204.514 272.715 216.961 293.443 224.036C314.18 216.961 315.321 204.514 313.628 199.592C317.041 203.52 328.403 208.746 344.889 194.329C349.131 172.838 338.928 165.616 333.813 164.623C338.919 163.629 349.131 156.407 344.889 134.916C328.403 120.499 317.041 125.725 313.628 129.653C315.321 124.731 314.171 112.284 293.443 105.209C272.706 112.284 271.565 124.731 273.258 129.653C269.845 125.725 258.483 120.499 241.997 134.916C237.755 156.407 247.958 163.629 253.073 164.623ZM335.634 140.261C340.069 147.952 338.937 157.732 332.902 164.199C328.845 152.727 322.055 150.022 316.425 151.347C320.39 147.133 321.439 139.902 313.536 130.656C322.147 128.66 331.191 132.57 335.634 140.261ZM310.021 164.623C312.432 163.758 317.565 161.66 315.9 152.147C321.301 153.849 325.045 158.928 325.045 164.623C325.045 170.317 321.301 175.387 315.9 177.098C317.575 167.585 312.441 165.497 310.021 164.623ZM270.986 177.098C265.585 175.396 261.841 170.317 261.841 164.623C261.841 158.928 265.585 153.859 270.986 152.147C269.311 161.66 274.445 163.749 276.865 164.623C274.454 165.487 269.321 167.585 270.986 177.098ZM285.154 150.271C283.194 148.615 278.815 145.22 271.418 151.421C270.195 145.891 272.715 140.114 277.647 137.262C282.578 134.419 288.843 135.118 293.02 138.945C283.949 142.257 284.703 147.741 285.154 150.271ZM271.418 177.843C278.815 184.044 283.194 180.649 285.154 178.993C284.703 181.514 283.949 187.006 293.02 190.318C288.843 194.145 282.578 194.854 277.647 192.002C272.715 189.159 270.195 183.372 271.418 177.843ZM285.641 178.156C282.026 179.159 278.291 177.521 276.497 174.421C274.703 171.32 275.153 167.263 277.831 164.632C275.153 162.01 274.703 157.943 276.497 154.843C278.291 151.743 282.026 150.105 285.641 151.108C286.58 147.474 289.864 145.063 293.452 145.054C297.031 145.054 300.325 147.474 301.263 151.099C304.879 150.096 308.614 151.733 310.408 154.834C312.202 157.934 311.751 161.991 309.074 164.623C311.751 167.245 312.202 171.311 310.408 174.411C308.614 177.512 304.879 179.149 301.263 178.147C300.325 181.781 297.04 184.191 293.452 184.2C289.873 184.2 286.58 181.781 285.641 178.156ZM293.875 138.955C298.052 135.127 304.317 134.419 309.249 137.271C314.18 140.114 316.701 145.901 315.477 151.43C308.08 145.229 303.701 148.624 301.741 150.28C302.192 147.759 302.947 142.267 293.875 138.955ZM301.741 178.993C303.701 180.649 308.08 184.044 315.477 177.843C316.701 183.372 314.18 189.15 309.249 192.002C304.317 194.845 298.052 194.145 293.875 190.318C302.947 187.006 302.192 181.523 301.741 178.993ZM293.452 115.918C302.33 115.918 310.233 121.797 312.818 130.251C300.858 128.025 295.127 132.551 293.452 138.09C291.787 132.551 286.046 128.025 274.086 130.251C276.662 121.797 284.574 115.918 293.452 115.918ZM253.993 164.209C247.958 157.75 246.827 147.961 251.261 140.27C255.695 132.579 264.748 128.669 273.359 130.665C265.457 139.911 266.505 147.143 270.471 151.356C264.84 150.031 258.051 152.736 253.993 164.209ZM253.993 165.046C258.051 176.518 264.831 179.214 270.471 177.898C266.505 182.112 265.457 189.343 273.359 198.589C264.748 200.585 255.705 196.675 251.261 188.984C246.827 181.293 247.958 171.513 253.993 165.046ZM293.452 213.337C284.574 213.337 276.671 207.458 274.086 199.003C286.046 201.229 291.778 196.703 293.452 191.165C295.117 196.703 300.858 201.229 312.818 199.003C310.242 207.458 302.33 213.337 293.452 213.337ZM335.643 188.975C331.209 196.666 322.156 200.576 313.545 198.58C321.448 189.334 320.399 182.103 316.434 177.889C322.064 179.214 328.854 176.509 332.902 165.037C338.937 171.495 340.078 181.284 335.634 188.975H335.643ZM301.263 169.121V160.105L293.452 155.597L285.641 160.105V169.121L293.452 173.629L301.263 169.121Z"/></svg>
+      <p>sierra</p>
+    </div>
+    <div class="titleblock">
+      <h1 class="reveal r1">Thank you</h1>
+      <p class="sub reveal r2">North Star in sight&hellip;</p>
+    </div>
+    <div class="footer-meta reveal r3">
+      <p>[name@sierra.ai]</p>
+      <p>sierra.ai</p>
+    </div>
+  </div>
+</section>
+
+<script>
+(function(){
+  var sections = Array.from(document.querySelectorAll('section.slide'));
+  var nav = document.getElementById('nav');
+  var topLabel = document.getElementById('topLabel');
+  var progress = document.getElementById('progress');
+  var counterCur = document.querySelector('#mobileCounter .cur');
+  var counterTot = document.querySelector('#mobileCounter .tot');
+  counterTot.textContent = sections.length;
+
+  sections.forEach(function(sec, i){
+    var btn = document.createElement('button');
+    btn.dataset.target = '#' + sec.id;
+    var tip = document.createElement('span');
+    tip.className = 'tip';
+    tip.textContent = (i+1) + '. ' + (sec.dataset.title || sec.id);
+    btn.appendChild(tip);
+    btn.addEventListener('click', function(){
+      sec.scrollIntoView({behavior:'smooth', block:'start'});
+    });
+    nav.appendChild(btn);
+  });
+  var navButtons = Array.from(nav.querySelectorAll('button'));
+
+  var current = -1;
+
+  function setActive(i){
+    if(i === current) return;
+    current = i;
+    navButtons.forEach(function(b, idx){ b.classList.toggle('active', idx === i); });
+    var sec = sections[i];
+    topLabel.querySelector('.idx').textContent = String(i+1).padStart(2,'0');
+    topLabel.querySelector('span:not(.idx)').textContent = sec.dataset.title || sec.id;
+    topLabel.classList.toggle('show', i > 0);
+    counterCur.textContent = i + 1;
+  }
+
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(entry.isIntersecting){
+        entry.target.querySelectorAll('.reveal').forEach(function(el){ el.classList.add('visible'); });
+        var barsWrap = entry.target.querySelector('.bars-wrap');
+        if(barsWrap) barsWrap.classList.add('visible');
+      }
+    });
+  }, {threshold:[0, 0.5]});
+  sections.forEach(function(sec){ io.observe(sec); });
+
+  // pin-scroll sections: progressively reveal their .reveal-step children
+  // as the viewer scrolls through the section's extra (pinned) height.
+  var pinSections = sections.filter(function(s){ return s.classList.contains('pin-scroll'); });
+  pinSections.forEach(function(sec){
+    sec._steps = Array.from(sec.querySelectorAll('.reveal-step'));
+  });
+
+  function updateStepReveals(){
+    var vh = window.innerHeight;
+    pinSections.forEach(function(sec){
+      var rect = sec.getBoundingClientRect();
+      var scrollable = sec.offsetHeight - vh;
+      var progress = scrollable > 0 ? (-rect.top) / scrollable : (rect.top <= 0 ? 1 : 0);
+      progress = Math.max(0, Math.min(1, progress));
+      var steps = sec._steps;
+      var n = steps.length;
+      steps.forEach(function(el, i){
+        var threshold = n > 1 ? i / n : 0;
+        if(progress >= threshold - 0.02){ el.classList.add('step-visible'); }
+        else { el.classList.remove('step-visible'); }
+      });
+    });
+  }
+
+  var ticking = false;
+  function onScroll(){
+    if(ticking) return;
+    ticking = true;
+    requestAnimationFrame(function(){
+      var doc = document.documentElement;
+      var max = doc.scrollHeight - doc.clientHeight;
+      var pct = max > 0 ? (window.scrollY / max) * 100 : 0;
+      progress.style.width = pct + '%';
+
+      // active-section detection: whichever section covers ~40% down the viewport.
+      var probe = window.innerHeight * 0.4;
+      var activeIdx = current;
+      for(var i = 0; i < sections.length; i++){
+        var r = sections[i].getBoundingClientRect();
+        if(r.top <= probe && r.bottom > probe){ activeIdx = i; break; }
+      }
+      setActive(activeIdx);
+
+      updateStepReveals();
+      ticking = false;
+    });
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', onScroll, {passive:true});
+  onScroll();
+
+  window.addEventListener('keydown', function(e){
+    if(['ArrowDown','PageDown'].includes(e.key)){
+      e.preventDefault();
+      var next = sections[Math.min(current+1, sections.length-1)];
+      next.scrollIntoView({behavior:'smooth', block:'start'});
+    } else if(['ArrowUp','PageUp'].includes(e.key)){
+      e.preventDefault();
+      var prev = sections[Math.max(current-1, 0)];
+      prev.scrollIntoView({behavior:'smooth', block:'start'});
+    }
+  });
+
+  setActive(0);
+})();
+</script>
+</body>
+</html>
